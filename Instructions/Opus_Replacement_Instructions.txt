@@ -1,0 +1,18 @@
+Requirements:
+* have an extracted romfs (Ryujinx can do this)
+* Audacity
+* A copy of Handburger Modkit - Ifrit
+	
+1. Get audio file (.mp3, .m4a, .wav, etc)
+2. Import your audio into Audacity or any audio editing software. I choose Audacity because it is freeware and works well.
+3. Scan through your audio to find the loop points. I like to listen to the music while I do dishes to guarantee the smoothness.
+4. Convert the selection you made from step 3 from seconds to samples. It is this samples value that we will be using later. Note that down.
+5. Press the skip-to-end button to find the total sample value of the audio in samples. This will also be used later, and noted down.
+6. Export the audio and place it in a easy spot for use. The default values on Audacity are sufficient for our purposes.
+7. Drag the file onto AudioConverter.bat to convert it. It will automatically be added to wherever your .wav file initially was.
+8. Type in your loop start and end values that we got in step 4. This provides you with the hexadecimal for the opus.
+9. Drag your opus onto the OpusEditor.bat and type in what you got received from step 8.
+10. Open up stqr_editor.html and open up the associated .stqr file. Important to note that not all audio files have stqr, but almost all of the .opus files do have one near the source of the .opus files. 
+11. Type in the new data we acquired in the previous steps. Do note that it wants SAMPLES not the hexadecimal for the loops. 
+12. Place your stqr and .opus file in your /romfs/nativeNX/sound/bgm/* where * is what you decided to change. 
+13. You're complete!

@@ -1,0 +1,31 @@
+Requirements
+
+    Kuriimu2
+    extracted MHGU /romfs/nativeNX/...
+    A copy of Handburger Modkit - Ifrit
+
+    1. Scan and locate the .mca/.adpcm file you want to replace. Many .mca and .adpcm are hidden with .arc files that will be discussed in further instructions.
+
+    2. Run Kuriimu2 and navigate to the desired .arc file and click on MT Arc as your plugin.
+
+    3. Extract the .arc file, and remember to save it.
+
+    4. Pinpoint which .mca/.adpcm you wish to replace. In my case I will be replacing f01_00.mca which was in /romfs/nativeNX/arc/player/com/f/vo/01.arc/sound/se/pl/vo/f01/wav/f01.00.mca.
+
+    5. Acquire your replacement wav and adjust the volume if necessary.
+
+    6. Place the audio file onto HBMK-IFRIT's AudioConverter.bat, where it will convert your wav into a .adpcm. If your file that you want to replace is called a .adpcm, then rename it as such. Same goes for .mca.
+
+    7. Re-open Kuriimu2 and open your 01.arc again. Right click the folder and click replace with the desired changed files nested inside.
+
+    8. Create a directory that mimics the old one for where you place your new modified .arc file. in my case it would be ~/arc/player/com/f/vo/01.arc
+
+    9. Move this romfs directory that you created and place it into your emulator/modded Switch. 
+
+9a. if you are using Yuzu, make a folder called VoiceMod or whatever you like and place your romfs folder into it. Then right click on MHGU and click Open Mod Data Location. Place your folder there. 
+
+9b. If you are using Ryujinx, rightclick on MHGU and select Mod Directory and drop the romfs file 
+
+9c. If you are using a modded Switch, navigate to Atmosphere > contents > 0100770008dd8000 and drop the romfs file there.
+    
+    10. And if you did all that, you should have the mod working!

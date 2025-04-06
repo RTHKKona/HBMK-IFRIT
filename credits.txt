@@ -1,0 +1,14 @@
+Apai - MHGU Compendium Party contributor and researcher
+Dasding - for creating the original mhtools and inspiration for MHGU/MHXX mca conversions
+DBouken - MHGU Compendium Party contributor and researcher
+eviltrainer - for inspiration and curiosity
+ffmpeg - for audio manipulation and dependencies
+Fexty - Guidance and knowledge about NXAenc, MHGU, and scripting
+IcySon55, et al. - Kuriimu2 for accessing arc files, extraction and injection of files into arcs.
+LucioPalmucci - translation for original Handburger Modkit into Idioma Español
+masagrator - for the original MHGU NXAenc
+nichoconutzy - translation for original Handburger Modkit into Bahasa Indonesia
+Poto - MHGU Compendium Party contributor and researcher
+vgmstream - for audio listening and dependencies
+
+and me, for pulling through.

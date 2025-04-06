@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STQR Editor Tool v1.0</title>
+    <style>
+        :root {
+            --bg-color: #2b2b2b;
+            --text-color: #ffebcd;
+            --widget-bg: #4d4d4d;
+            --button-bg: #4c4c4c;
+            --button-border: #ffebcd;
+            --header-bg: #ffebcd;
+            --header-text: #000000;
+        }
+        body {
+            font-family: 'Consolas', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+        .file-path {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        .content-container {
+            display: flex;
+            flex-direction: row;
+            height: 80%;
+            gap: 10px;
+        }
+        .hex-view {
+            flex: 0 0 200px; /* Reduced size */
+            min-width: 100px;
+            max-width: 50%; /* Reduced max-width */
+            background-color: var(--widget-bg);
+            padding: 10px;
+            overflow: auto;
+            border-radius: 5px;
+            white-space: pre;
+            font-size: 0.5em;
+        }
+        .grid-container {
+            flex: 2;
+            min-width: 100px;
+            max-width: 80%;
+            overflow: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--widget-bg);
+            color: var(--text-color);
+        }
+        th, td {
+            border: 1px solid #555;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            position: sticky;
+            top: 0;
+        }
+        td input {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: var(--widget-bg);
+            color: var(--text-color);
+            border: 1px solid #555;
+            padding: 5px;
+        }
+        .button-panel {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            border: 2px solid var(--button-border);
+            padding: 10px 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 1em;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background-color: var(--button-border);
+            color: #000;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #background-image {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            opacity: 0.15;
+            pointer-events: none;
+            display: none;
+        }
+        .resizer {
+            width: 10px;
+            cursor: ew-resize;
+            background-color: var(--button-border);
+            z-index: 1;
+        }
+        .light-mode {
+            --bg-color: white;
+            --text-color: black;
+            --widget-bg: white;
+            --button-bg: white;
+            --button-border: #d3d3d3;
+            --header-bg: #ebebeb;
+            --header-text: black;
+        }
+        .light-mode button:hover {
+            background-color: #d3d3d3;
+            color: black;
+        }
+        .light-mode td input {
+            border: 1px solid #d3d3d3;
+        }
+        /* Drag and drop styles */
+        #load-button.dragover {
+            background-color: #ffebcd;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="title">STQR Editor Tool v1.0</div>
+        <img id="background-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23FFC107'/%3E%3C/svg%3E" width="100" alt="Background">
+    </header>
+    <div class="container">
+        <div class="file-path" id="file-path">No file loaded</div>
+        <div class="content-container">
+            <div class="hex-view" id="hex-view">Load a STQR file to view its content.</div>
+            <div class="resizer" id="resizer"></div>
+            <div class="grid-container">
+                <table id="data-grid">
+                    <thead>
+                        <tr>
+                            <th>File Directory</th>
+                            <th>Size of File (bytes)</th>
+                            <th>Number of Samples</th>
+                            <th>Number of Channels</th>
+                            <th>Sample Rate (Hz)</th>
+                            <th>Loop Start (samples)</th>
+                            <th>Loop End (samples)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="button-panel">
+            <button id="load-button">Load .stqr File</button>
+            <button id="parse-button" disabled>Parse Patterns</button>
+            <button id="save-button" disabled>Save Changes</button>
+            <button id="clear-button">Clear</button>
+            <button id="undo-button" disabled>Undo</button>
+            <button id="redo-button" disabled>Redo</button>
+            <button id="theme-button">Toggle Theme</button>
+            <button id="font-up-button">Font +</button>
+            <button id="font-down-button">Font -</button>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const app = {
+                state: {
+                    darkMode: true,
+                    loadedFileName: '',
+                    originalContent: null,
+                    backupContent: null, // Added for backup
+                    patternOffsets: [],
+                    undoStack: [],
+                    redoStack: [],
+                    fileHandle: null,
+                    gridFontSize: 0.9 // Default font size in em
+                },
+                elements: {
+                    hexView: document.getElementById('hex-view'),
+                    dataGrid: document.getElementById('data-grid'),
+                    filePath: document.getElementById('file-path'),
+                    backgroundImage: document.getElementById('background-image'),
+                    buttons: {
+                        load: document.getElementById('load-button'),
+                        parse: document.getElementById('parse-button'),
+                        save: document.getElementById('save-button'),
+                        clear: document.getElementById('clear-button'),
+                        undo: document.getElementById('undo-button'),
+                        redo: document.getElementById('redo-button'),
+                        theme: document.getElementById('theme-button'),
+                        fontUp: document.getElementById('font-up-button'),
+                        fontDown: document.getElementById('font-down-button')
+                    }
+                },
+                init: function() {
+                    this.bindEvents();
+                    this.setupResizer();
+                    this.setupDragAndDrop();
+                    this.updateGridFontSize();
+                },
+                bindEvents: function() {
+                    this.elements.buttons.load.addEventListener('click', this.loadFile.bind(this));
+                    this.elements.buttons.parse.addEventListener('click', this.searchPatterns.bind(this));
+                    this.elements.buttons.save.addEventListener('click', this.saveChanges.bind(this));
+                    this.elements.buttons.clear.addEventListener('click', this.clearData.bind(this));
+                    this.elements.buttons.undo.addEventListener('click', this.undo.bind(this));
+                    this.elements.buttons.redo.addEventListener('click', this.redo.bind(this));
+                    this.elements.buttons.theme.addEventListener('click', this.toggleTheme.bind(this));
+                    this.elements.buttons.fontUp.addEventListener('click', this.increaseFontSize.bind(this));
+                    this.elements.buttons.fontDown.addEventListener('click', this.decreaseFontSize.bind(this));
+                },
+                setupResizer: function() {
+                    const resizer = document.getElementById('resizer');
+                    const hexView = document.querySelector('.hex-view');
+                    const gridContainer = document.querySelector('.grid-container');
+                    const contentContainer = document.querySelector('.content-container');
+
+                    let isResizing = false;
+
+                    resizer.addEventListener('mousedown', (e) => {
+                        isResizing = true;
+                        document.addEventListener('mousemove', resize);
+                        document.addEventListener('mouseup', stopResize);
+                    });
+
+                    function resize(e) {
+                        if (!isResizing) return;
+                        const containerWidth = contentContainer.offsetWidth;
+                        const offset = e.clientX - contentContainer.getBoundingClientRect().left;
+                        const hexViewWidth = Math.min(Math.max(offset, 100), containerWidth - 100);
+                        hexView.style.flex = `0 0 ${hexViewWidth}px`;
+                        gridContainer.style.flex = `1 1 auto`;
+                    }
+
+                    function stopResize() {
+                        isResizing = false;
+                        document.removeEventListener('mousemove', resize);
+                        document.removeEventListener('mouseup', stopResize);
+                    }
+                },
+                setupDragAndDrop: function() {
+                    const loadButton = this.elements.buttons.load;
+                    loadButton.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        loadButton.classList.add('dragover');
+                    });
+                    loadButton.addEventListener('dragleave', () => {
+                        loadButton.classList.remove('dragover');
+                    });
+                    loadButton.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        loadButton.classList.remove('dragover');
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.name.endsWith('.stqr')) {
+                            this.loadFileFromDrop(file);
+                        } else {
+                            this.showError('Invalid File', 'Please drop a valid .stqr file.');
+                        }
+                    });
+                },
+                loadFile: async function() {
+                    try {
+                        [this.state.fileHandle] = await window.showOpenFilePicker({
+                            types: [{
+                                description: 'STQR Files',
+                                accept: { 'application/octet-stream': ['.stqr'] }
+                            }]
+                        });
+                        this.loadFileContent(await this.state.fileHandle.getFile());
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            this.showError('File Load Error', err.message);
+                        }
+                    }
+                },
+                loadFileFromDrop: function(file) {
+                    this.state.fileHandle = null; // No file handle for dropped files
+                    this.loadFileContent(file);
+                },
+                loadFileContent: async function(file) {
+                    this.state.loadedFileName = file.name;
+                    const buffer = await file.arrayBuffer();
+                    this.state.originalContent = new Uint8Array(buffer);
+                    this.state.backupContent = new Uint8Array(buffer); // Create backup
+                    const headerView = new Uint8Array(buffer, 0, 4);
+                    const header = new TextDecoder().decode(headerView);
+                    if (header !== 'STQR') {
+                        this.showError('Invalid File', 'The file is not a valid .stqr file.');
+                        return;
+                    }
+                    this.storeState();
+                    document.title = `STQR Editor Tool v1.0 - Editing ${this.state.loadedFileName}`;
+                    this.elements.filePath.textContent = `Currently Editing: ${this.state.loadedFileName}`;
+                    this.elements.hexView.textContent = this.formatHex(this.state.originalContent);
+                    this.elements.buttons.parse.disabled = false;
+                    this.elements.buttons.save.disabled = false;
+                    if (Math.random() < 0.20) {
+                        this.elements.backgroundImage.style.display = 'block';
+                    } else {
+                        this.elements.backgroundImage.style.display = 'none';
+                    }
+                    this.elements.buttons.undo.disabled = false;
+                    this.elements.buttons.redo.disabled = true;
+                },
+                formatHex: function(content) {
+                    let result = '';
+                    const bytesPerLine = 36;
+                    for (let i = 0; i < content.length; i += bytesPerLine) {
+                        const lineBytes = content.slice(i, i + bytesPerLine);
+                        const lineHex = Array.from(lineBytes)
+                            .map(byte => byte.toString(16).padStart(2, '0').toUpperCase())
+                            .join('');
+                        let formattedLine = '';
+                        for (let j = 0; j < lineHex.length; j += 8) {
+                            formattedLine += lineHex.substring(j, j + 8) + ' ';
+                        }
+                        result += formattedLine.trim() + '\n';
+                    }
+                    return result;
+                },
+                searchPatterns: function() {
+                    this.elements.buttons.parse.disabled = true;
+                    const tbody = this.elements.dataGrid.querySelector('tbody');
+                    tbody.innerHTML = '';
+                    this.state.patternOffsets = [];
+                    const content = Array.from(this.state.originalContent)
+                        .map(byte => byte.toString(16).padStart(2, '0').toUpperCase())
+                        .join('');
+                    const pattern1 = "XXXXXXXX XXXXXXXX 02000000 80BB0000 XXXXXXXX XXXXXXXX".replace(/\s+/g, '');
+                    for (let index = 0; index < content.length - pattern1.length; index += 2) {
+                        const match = content.substring(index, index + pattern1.length);
+                        if (this.patternMatches(match, pattern1)) {
+                            const windowData = content.substring(index, index + 96);
+                            this.populateGrid(windowData);
+                            this.state.patternOffsets.push(index / 2);
+                        }
+                    }
+                    const startPattern = "0000000000000000736F756E64";
+                    const startIndex = content.indexOf(startPattern);
+                    if (startIndex !== -1) {
+                        this.extractDirectoryData(content.substring(startIndex + startPattern.length));
+                    }
+                    this.storeState();
+                },
+                hexStringToBytes: function(hexString) {
+                    const bytes = new Uint8Array(hexString.length / 2);
+                    for (let i = 0; i < hexString.length; i += 2) {
+                        bytes[i / 2] = parseInt(hexString.substring(i, i + 2), 16);
+                    }
+                    return bytes;
+                },
+                patternMatches: function(match, pattern) {
+                    for (let i = 0; i < pattern.length; i++) {
+                        if (pattern[i] !== 'X' && pattern[i] !== match[i]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                },
+                extractDirectoryData: function(data) {
+                    let digitCount = 0;
+                    let buffer = "";
+                    for (let i = 0; i < data.length; i += 2) {
+                        const part = data.substring(i, i + 2);
+                        if (part === "00") {
+                            if (digitCount >= 8) {
+                                try {
+                                    const bytes = this.hexStringToBytes(buffer);
+                                    const decoder = new TextDecoder('windows-1252');
+                                    const decoded = decoder.decode(bytes);
+                                    this.appendToTitleColumn(decoded);
+                                } catch (e) {}
+                            }
+                            digitCount = 0;
+                            buffer = "";
+                        } else {
+                            buffer += part;
+                            digitCount += 2;
+                        }
+                    }
+                },
+                appendToTitleColumn: function(text) {
+                    const tbody = this.elements.dataGrid.querySelector('tbody');
+                    const rows = tbody.querySelectorAll('tr');
+                    for (let i = 0; i < rows.length; i++) {
+                        const firstCell = rows[i].querySelector('td:first-child');
+                        if (!firstCell.textContent.trim()) {
+                            if (i === 0) {
+                                text = "sound" + text;
+                            }
+                            firstCell.textContent = text;
+                            break;
+                        }
+                    }
+                },
+                populateGrid: function(hexData) {
+                    const tbody = this.elements.dataGrid.querySelector('tbody');
+                    const row = document.createElement('tr');
+                    const dirCell = document.createElement('td');
+                    row.appendChild(dirCell);
+                    for (let i = 0; i < 6; i++) {
+                        const cell = document.createElement('td');
+                        const offset = i * 8;
+                        const hexValue = hexData.substring(offset, offset + 8);
+                        const intValue = this.littleEndianHexToInt(hexValue);
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.value = intValue;
+                        input.setAttribute('data-original', intValue);
+                        input.setAttribute('data-column', i);
+                        cell.appendChild(input);
+                        row.appendChild(cell);
+                    }
+                    tbody.appendChild(row);
+                },
+                littleEndianHexToInt: function(hexString) {
+                    if (hexString.length !== 8) return 0;
+                    const bytes = [];
+                    for (let i = 0; i < 8; i += 2) {
+                        bytes.unshift(parseInt(hexString.substring(i, i + 2), 16));
+                    }
+                    let result = 0;
+                    for (let i = 0; i < 4; i++) {
+                        result = (result << 8) | bytes[i];
+                    }
+                    return result;
+                },
+                intToLittleEndianBytes: function(value) {
+                    const bytes = new Uint8Array(4);
+                    bytes[0] = value & 0xFF;
+                    bytes[1] = (value >> 8) & 0xFF;
+                    bytes[2] = (value >> 16) & 0xFF;
+                    bytes[3] = (value >> 24) & 0xFF;
+                    return bytes;
+                },
+                saveChanges: async function() {
+                    if (!this.state.loadedFileName) {
+                        this.showError('No File Loaded', 'Please load a file before trying to save.');
+                        return;
+                    }
+                    const tbody = this.elements.dataGrid.querySelector('tbody');
+                    const rows = tbody.querySelectorAll('tr');
+                    if (rows.length !== this.state.patternOffsets.length) {
+                        this.showError('Save Failed', 'Pattern offsets do not match the number of rows in the grid.');
+                        return;
+                    }
+                    try {
+                        const modifiedContent = new Uint8Array(this.state.originalContent);
+                        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                            const offset = this.state.patternOffsets[rowIndex];
+                            const row = rows[rowIndex];
+                            const inputs = row.querySelectorAll('input[type="number"]');
+                            for (let colIndex = 0; colIndex < inputs.length; colIndex++) {
+                                const input = inputs[colIndex];
+                                const intValue = parseInt(input.value);
+                                const bytes = this.intToLittleEndianBytes(intValue);
+                                const start = offset + colIndex * 4;
+                                for (let i = 0; i < 4; i++) {
+                                    modifiedContent[start + i] = bytes[i];
+                                }
+                            }
+                        }
+                        const saveFileHandle = await window.showSaveFilePicker({
+                            suggestedName: this.state.loadedFileName,
+                            types: [{ description: 'STQR Files', accept: { 'application/octet-stream': ['.stqr'] } }]
+                        });
+                        const writable = await saveFileHandle.createWritable();
+                        await writable.write(modifiedContent);
+                        await writable.close();
+                        // Save backup
+                        const backupFileHandle = await window.showSaveFilePicker({
+                            suggestedName: `backup_${this.state.loadedFileName}`,
+                            types: [{ description: 'STQR Backup Files', accept: { 'application/octet-stream': ['.stqr'] } }]
+                        });
+                        const backupWritable = await backupFileHandle.createWritable();
+                        await backupWritable.write(this.state.backupContent);
+                        await backupWritable.close();
+                        this.storeState();
+                        this.showInfo('Save Successful', `File saved successfully! Backup saved as backup_${this.state.loadedFileName}`);
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            this.showError('Save Failed', err.message);
+                        }
+                    }
+                },
+                clearData: function() {
+                    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                        this.storeState();
+                        this.elements.hexView.textContent = 'Load a STQR file to view its content.';
+                        this.elements.dataGrid.querySelector('tbody').innerHTML = '';
+                        this.elements.filePath.textContent = 'No file loaded';
+                        document.title = 'STQR Editor Tool v1.0';
+                        this.elements.backgroundImage.style.display = 'none';
+                        this.state.patternOffsets = [];
+                        this.state.loadedFileName = '';
+                        this.state.originalContent = null;
+                        this.state.backupContent = null;
+                        this.state.fileHandle = null;
+                        this.elements.buttons.parse.disabled = true;
+                        this.elements.buttons.save.disabled = true;
+                        this.elements.buttons.undo.disabled = true;
+                        this.elements.buttons.redo.disabled = true;
+                        this.showInfo('Clear Successful', 'All data has been cleared.');
+                    }
+                },
+                storeState: function() {
+                    const state = {
+                        hexView: this.elements.hexView.textContent,
+                        gridData: this.captureGridData(),
+                        patternOffsets: [...this.state.patternOffsets],
+                        fileName: this.state.loadedFileName,
+                        originalContent: this.state.originalContent ? new Uint8Array(this.state.originalContent) : null,
+                        backupContent: this.state.backupContent ? new Uint8Array(this.state.backupContent) : null
+                    };
+                    this.state.undoStack.push(state);
+                    this.state.redoStack = [];
+                    this.updateUndoRedoButtons();
+                },
+                captureGridData: function() {
+                    const tbody = this.elements.dataGrid.querySelector('tbody');
+                    const rows = tbody.querySelectorAll('tr');
+                    const data = [];
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+                        const rowData = {
+                            directory: row.querySelector('td:first-child').textContent,
+                            values: []
+                        };
+                        const inputs = row.querySelectorAll('input[type="number"]');
+                        for (let j = 0; j < inputs.length; j++) {
+                            rowData.values.push(inputs[j].value);
+                        }
+                        data.push(rowData);
+                    }
+                    return data;
+                },
+                restoreState: function(state) {
+                    if (!state) return;
+                    this.elements.hexView.textContent = state.hexView;
+                    const tbody = this.elements.dataGrid.querySelector('tbody');
+                    tbody.innerHTML = '';
+                    for (const rowData of state.gridData) {
+                        const row = document.createElement('tr');
+                        const dirCell = document.createElement('td');
+                        dirCell.textContent = rowData.directory;
+                        row.appendChild(dirCell);
+                        for (let i = 0; i < rowData.values.length; i++) {
+                            const cell = document.createElement('td');
+                            const input = document.createElement('input');
+                            input.type = 'number';
+                            input.value = rowData.values[i];
+                            input.setAttribute('data-original', rowData.values[i]);
+                            input.setAttribute('data-column', i);
+                            cell.appendChild(input);
+                            row.appendChild(cell);
+                        }
+                        tbody.appendChild(row);
+                    }
+                    this.state.patternOffsets = [...state.patternOffsets];
+                    this.state.loadedFileName = state.fileName;
+                    this.state.originalContent = state.originalContent ? new Uint8Array(state.originalContent) : null;
+                    this.state.backupContent = state.backupContent ? new Uint8Array(state.backupContent) : null;
+                    if (state.fileName) {
+                        document.title = `STQR Editor Tool v1.0 - Editing ${state.fileName}`;
+                        this.elements.filePath.textContent = `Currently Editing: ${state.fileName}`;
+                        this.elements.buttons.parse.disabled = false;
+                        this.elements.buttons.save.disabled = false;
+                    } else {
+                        document.title = 'STQR Editor Tool v1.0';
+                        this.elements.filePath.textContent = 'No file loaded';
+                        this.elements.buttons.parse.disabled = true;
+                        this.elements.buttons.save.disabled = true;
+                    }
+                },
+                undo: function() {
+                    if (this.state.undoStack.length > 0) {
+                        const currentState = this.captureCurrentState();
+                        this.state.redoStack.push(currentState);
+                        const previousState = this.state.undoStack.pop();
+                        this.restoreState(previousState);
+                        this.updateUndoRedoButtons();
+                    }
+                },
+                redo: function() {
+                    if (this.state.redoStack.length > 0) {
+                        const currentState = this.captureCurrentState();
+                        this.state.undoStack.push(currentState);
+                        const nextState = this.state.redoStack.pop();
+                        this.restoreState(nextState);
+                        this.updateUndoRedoButtons();
+                    }
+                },
+                captureCurrentState: function() {
+                    return {
+                        hexView: this.elements.hexView.textContent,
+                        gridData: this.captureGridData(),
+                        patternOffsets: [...this.state.patternOffsets],
+                        fileName: this.state.loadedFileName,
+                        originalContent: this.state.originalContent ? new Uint8Array(this.state.originalContent) : null,
+                        backupContent: this.state.backupContent ? new Uint8Array(this.state.backupContent) : null
+                    };
+                },
+                updateUndoRedoButtons: function() {
+                    this.elements.buttons.undo.disabled = this.state.undoStack.length === 0;
+                    this.elements.buttons.redo.disabled = this.state.redoStack.length === 0;
+                },
+                toggleTheme: function() {
+                    this.state.darkMode = !this.state.darkMode;
+                    document.body.classList.toggle('light-mode', !this.state.darkMode);
+                },
+                increaseFontSize: function() {
+                    this.state.gridFontSize += 0.1;
+                    this.updateGridFontSize();
+                },
+                decreaseFontSize: function() {
+                    this.state.gridFontSize = Math.max(0.5, this.state.gridFontSize - 0.1); // Minimum font size
+                    this.updateGridFontSize();
+                },
+                updateGridFontSize: function() {
+                    const table = this.elements.dataGrid;
+                    table.style.fontSize = `${this.state.gridFontSize}em`;
+                },
+                showError: function(title, message) {
+                    alert(`${title}: ${message}`);
+                },
+                showInfo: function(title, message) {
+                    alert(`${title}: ${message}`);
+                }
+            };
+            app.init();
+        });
+    </script>
+</body>
+</html>
